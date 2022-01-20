@@ -271,7 +271,7 @@ class UiManager():
             exclude_props = self._config.items[x.name].exclude
             if not (include_props or exclude_props):
                 if do_logging:
-                    Logger.debug(f"{x.name}: Stashing")
+                    Logger.debug(f"{x.name}: Stashing", True)
                 filtered_list.append(x)
                 continue
             include = True
@@ -322,7 +322,7 @@ class UiManager():
                     break
             if include and not exclude:
                 if do_logging:
-                    Logger.debug(f"{x.name}: Stashing. Required {include_logic_type}({include_props})={include}, exclude {exclude_logic_type}({exclude_props})={exclude}")
+                    Logger.debug(f"{x.name}: Stashing. Required {include_logic_type}({include_props})={include}, exclude {exclude_logic_type}({exclude_props})={exclude}", True)
                 filtered_list.append(x)
 
         return filtered_list

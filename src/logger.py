@@ -2,13 +2,14 @@ import logging
 import io
 import os
 import sys
-import re
 import warnings
+import utils.colored_formatter as cf
 
 class Logger:
     """Manage logging"""
     _logger_level = None
-    _formatter = logging.Formatter('[%(asctime)s] %(levelname)-10s %(message)s')
+    _format = "[%(asctime)s] %(levelname)-10s %(message)s"
+    _formatter =  logging.Formatter(_format)   
     _log_contents = io.StringIO()
     _current_log_file_path = "info.log"
     _output = ""  # intercepted output from stdout and stderr
@@ -16,40 +17,60 @@ class Logger:
     file_handler = None
     console_handler = None
     logger = None
-
+    
     @staticmethod
-    def debug(data: str):
+    def debug(data: str, hl = False):
         if Logger.logger is None:
             Logger.init()
+            
+        if hl:
+            data = cf.format_bold(cf.format_green(data))  
+             
         Logger.logger.debug(data)
     
     @staticmethod
-    def info(data: str):
+    def info(data: str, hl = False):
         if Logger.logger is None:
             Logger.init()
+            
+        if hl:
+            data = cf.format_bold(cf.format_green(data)) 
+            
         Logger.logger.info(data)
 
     @staticmethod
-    def warning(data: str):
+    def warning(data: str, hl = False):
         if Logger.logger is None:
             Logger.init()
+            
+        if hl:
+            data = cf.format_bold(cf.format_green(data)) 
+            
         Logger.logger.warning(data)
 
     @staticmethod
-    def error(data: str):
+    def error(data: str, hl = False):
         if Logger.logger is None:
             Logger.init()
+            
+        if hl:
+            data = cf.format_bold(cf.format_red(data)) 
+            
         Logger.logger.error(data)
-
+    
     @staticmethod
-    def init(lvl = logging.DEBUG):
+    def init(lvl = logging.DEBUG, colored_console = False):
         """
         Setup logger for StringIO, console and file handler
         """
         Logger._logger_level = lvl
-
+        
+        if colored_console:
+            print("colored_console used")
+            Logger._formatter = cf.colored_formatter(Logger._format)
+ 
         if Logger.logger is not None:
-            Logger.logger.warning("WARNING: logger was setup already, deleting all previously existing handlers")
+            Logger.logger.warning("logger was setup already, deleting all previously existing handlers")
             for hdlr in Logger.logger.handlers[:]:  # remove all old handlers
                 Logger.logger.removeHandler(hdlr)
 

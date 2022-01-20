@@ -10,6 +10,7 @@ from version import __version__
 from utils.graphic_debugger import GraphicDebuggerController
 from utils.auto_settings import adjust_settings, backup_settings, restore_settings_from_backup
 
+import utils.colored_formatter as cf
 from config import Config
 from logger import Logger
 
@@ -49,10 +50,11 @@ def on_exit(config: Config):
 
 def main():
     config = Config()
+
     if config.general["logg_lvl"] == "info":
-        Logger.init(logging.INFO)
+        Logger.init(logging.INFO, config.advanced_options["colored_console"])
     elif config.general["logg_lvl"] == "debug":
-        Logger.init(logging.DEBUG)
+        Logger.init(logging.DEBUG, config.advanced_options["colored_console"])
     else:
         print(f"ERROR: Unkown logg_lvl {config.general['logg_lvl']}. Must be one of [info, debug]")
 
@@ -64,7 +66,7 @@ def main():
     if not os.path.exists("loot_screenshots") and (config.general["loot_screenshots"] or config.general["message_api_type"] == "discord"):
         os.system("mkdir loot_screenshots")
 
-    print(f"============ Botty {__version__} [name: {config.general['name']}] ============")
+    print(f"============  Botty {cf.format_bold(cf.format_color(__version__, cf.RED))} [name: {cf.format_bold(cf.format_color(config.general['name'], cf.GREEN))}] ============")
     print("\nFor gettings started and documentation\nplease read https://github.com/aeon0/botty\n")
     table = BeautifulTable()
     table.rows.append([config.general['restore_settings_from_backup_key'], "Restore D2R settings from backup"])

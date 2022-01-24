@@ -15,33 +15,33 @@ COLOR_SEQ = "\033[1;%dm"
 BOLD_SEQ = "\033[1m"
 
 
-def format_color(message, color):
+def format_color(message, color : int):
     message = f"{COLOR_SEQ % (30 + color)}{message}{RESET_SEQ}" 
     return message
 
 def format_black(message):
-    return format(message, BLACK)
+    return format_color(message, BLACK)
 
 def format_red(message):
-    return format(message, RED)
+    return format_color(message, RED)
 
 def format_green(message):
-    return format(message, GREEN)
+    return format_color(message, GREEN)
 
 def format_yellow(message):
-    return format(message, YELLOW)
+    return format_color(message, YELLOW)
 
 def format_blue(message):
-    return format(message, BLUE)
+    return format_color(message, BLUE)
 
 def format_magenta(message):
-    return format(message, MAGENTA)
+    return format_color(message, MAGENTA)
 
 def format_cyan(message):
-    return format(message, CYAN)
+    return format_color(message, CYAN)
 
 def format_white(message):
-    return format(message, WHITE)
+    return format_color(message, WHITE)
 
 def format_bold(message):
     message = f"{BOLD_SEQ}{message}{RESET_SEQ}"

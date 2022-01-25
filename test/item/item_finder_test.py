@@ -5,7 +5,6 @@ from logger import Logger
 from item.item_finder import ItemFinder, Item
 from config import Config, ItemProps
 
-
 class TestItemFinder:
     def setup_method(self):
         Logger.init()

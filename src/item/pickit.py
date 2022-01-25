@@ -11,7 +11,6 @@ from ui import UiManager
 from ui import BeltManager
 from char import IChar
 
-
 class PickIt:
     def __init__(self, screen: Screen, item_finder: ItemFinder, ui_manager: UiManager, belt_manager: BeltManager):
         self._item_finder = item_finder
@@ -33,10 +32,6 @@ class PickIt:
         keyboard.send(self._config.char["show_items"])
         time.sleep(1.0) # sleep needed here to give d2r time to display items on screen on keypress
         #Creating a screenshot of the current loot
-        if self._config.general["loot_screenshots"]:
-            img = self._screen.grab()
-            cv2.imwrite("./loot_screenshots/info_debug_drop_" + time.strftime("%Y%m%d_%H%M%S") + ".png", img)
-            Logger.debug("Took a screenshot of current loot")
         start = prev_cast_start = time.time()
         time_out = False
         picked_up_items = []
@@ -44,6 +39,8 @@ class PickIt:
         curr_item_to_pick: Item = None
         same_item_timer = None
         did_force_move = False
+        done_ocr=False
+
         while not time_out:
             if (time.time() - start) > 28:
                 time_out = True
@@ -76,6 +73,16 @@ class PickIt:
                     mouse.move(*pos_m, randomize=[90, 160])
                     time.sleep(0.2)
             else:
+                if done_ocr == False:
+                    timestamp = time.strftime("%Y%m%d_%H%M%S")
+                    # timestamp = str(round(time.time_ns() // 1_000_000 ))
+                    for item in item_list:
+                        Logger.debug(f"OCR DROP: Name: {item.ocr_result['text']}, Conf: {item.ocr_result['word_confidences']}")
+                        if self._config.general["loot_screenshots"]:
+                            cv2.imwrite("./loot_screenshots/ocr_drop_" + timestamp + "_o.png", item.ocr_result['original_img'])
+                            cv2.imwrite("./loot_screenshots/ocr_drop_" + timestamp + "_n.png", item.ocr_result['processed_img'])
+                    done_ocr = True
+
                 found_nothing = 0
                 closest_item = item_list[0]
                 for item in item_list[1:]:

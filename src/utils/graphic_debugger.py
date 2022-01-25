@@ -350,5 +350,3 @@ class GraphicDebuggerController:
 if __name__ == "__main__":
     debugger = GraphicDebuggerController(Config())
     debugger.start()
-
-

@@ -2,7 +2,6 @@ from typing import List
 import keyboard
 import time
 import cv2
-import itertools
 import os
 import numpy as np
 
@@ -10,28 +9,18 @@ from utils.custom_mouse import mouse
 from utils.misc import wait, cut_roi, color_filter
 
 from logger import Logger
-from config import Config, ItemProps
+from config import Config
 from screen import Screen
-from item import ItemFinder
 from template_finder import TemplateFinder
-
-from messenger import Messenger
-from game_stats import GameStats
 
 
 class UiManager():
     """Everything that is clicking on some static 2D UI or is checking anything in regard to it should be placed here."""
 
-    def __init__(self, screen: Screen, template_finder: TemplateFinder, game_stats: GameStats = None):
+    def __init__(self, screen: Screen, template_finder: TemplateFinder):
         self._config = Config()
         self._template_finder = template_finder
-        self._messenger = Messenger()
-        self._game_stats = game_stats
         self._screen = screen
-        self._curr_stash = {
-            "items": 3 if self._config.char["fill_shared_stash_first"] else 0,
-            "gold": 0
-        } #0: personal, 1: shared1, 2: shared2, 3: shared3
 
     def use_wp(self, act: int, idx: int):
         """
@@ -205,6 +194,7 @@ class UiManager():
             return self.start_game()
         else:
             return True
+
 
     @staticmethod
     def _slot_has_item(slot_img: np.ndarray) -> bool:
@@ -548,6 +538,15 @@ class UiManager():
             return False
         return True
 
+    def repair_needed(self) -> bool:
+        template_match = self._template_finder.search(
+            "REPAIR_NEEDED",
+            self._screen.grab(),
+            roi=self._config.ui_roi["repair_needed"],
+            use_grayscale=True)
+        return template_match.valid
+
+
     def has_tps(self) -> bool:
         """
         :return: Returns True if botty has town portals available. False otherwise
@@ -567,14 +566,6 @@ class UiManager():
             return template_match.valid
         else:
             return False
-
-    def repair_needed(self) -> bool:
-        template_match = self._template_finder.search(
-            "REPAIR_NEEDED",
-            self._screen.grab(),
-            roi=self._config.ui_roi["repair_needed"],
-            use_grayscale=True)
-        return template_match.valid
 
     def enable_no_pickup(self) -> bool:
         """
@@ -599,31 +590,9 @@ class UiManager():
         wait(0.1, 0.25)
         return True
 
-    def buy_pots(self, healing_pots: int = 0, mana_pots: int = 0):
-        """
-        Buy pots from vendors. Vendor inventory needs to be open!
-        :param healing_pots: Number of healing pots to buy
-        :param mana_pots: Number of mana pots to buy
-        """
-        h_pot = self._template_finder.search_and_wait("SUPER_HEALING_POTION", roi=self._config.ui_roi["vendor_stash"], time_out=3)
-        if h_pot.valid is False:  # If not available in shop, try to shop next best potion.
-            h_pot = self._template_finder.search_and_wait("GREATER_HEALING_POTION", roi=self._config.ui_roi["vendor_stash"], time_out=3)
-        if h_pot.valid:
-            x, y = self._screen.convert_screen_to_monitor(h_pot.position)
-            mouse.move(x, y, randomize=8, delay_factor=[1.0, 1.5])
-            for _ in range(healing_pots):
-                mouse.click(button="right")
-                wait(0.9, 1.1)
-
-        m_pot = self._template_finder.search_and_wait("SUPER_MANA_POTION", roi=self._config.ui_roi["vendor_stash"], time_out=3)
-        if m_pot.valid is False:  # If not available in shop, try to shop next best potion.
-            m_pot = self._template_finder.search_and_wait("GREATER_MANA_POTION", roi=self._config.ui_roi["vendor_stash"], time_out=3)
-        if m_pot.valid:
-            x, y = self._screen.convert_screen_to_monitor(m_pot.position)
-            mouse.move(x, y, randomize=8, delay_factor=[1.0, 1.5])
-            for _ in range(mana_pots):
-                mouse.click(button="right")
-                wait(0.9, 1.1)
+    def center_mouse(self):
+        center_m = self._screen.convert_abs_to_monitor((0, 0))
+        mouse.move(*center_m, randomize=20)
 
 
 # Testing: Move to whatever ui to test and run
@@ -635,9 +604,7 @@ if __name__ == "__main__":
     print("Start")
     from config import Config
     config = Config()
-    game_stats = GameStats()
     screen = Screen(config.general["monitor"])
     template_finder = TemplateFinder(screen)
-    item_finder = ItemFinder()
-    ui_manager = UiManager(screen, template_finder, game_stats)
-    ui_manager.stash_all_items(5, item_finder)
+    ui_manager = UiManager(screen, template_finder)
+    #ui_manager.stash_all_items(5, item_finder)

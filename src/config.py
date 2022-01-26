@@ -158,6 +158,7 @@ class Config:
             "gold_trav_only": bool(int(Config._select_val("char", "gold_trav_only"))),
             "use_merc": bool(int(Config._select_val("char", "use_merc"))),
             "id_items": bool(int(Config._select_val("char", "id_items"))),
+            "sell_items": bool(int(Config._select_val("char", "sell_items"))),
             "open_chests": bool(int(Config._select_val("char", "open_chests"))),
             "fill_shared_stash_first": bool(int(Config._select_val("char", "fill_shared_stash_first"))),
             "pre_buff_every_run": bool(int(Config._select_val("char", "pre_buff_every_run"))),

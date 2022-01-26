@@ -8,7 +8,8 @@ import math
 from config import Config
 from utils.misc import color_filter, cut_roi
 from item import ItemCropper
-
+from ocr import OcrResult
+from template_finder import TemplateFinder
 
 @dataclass
 class Template:
@@ -23,10 +24,12 @@ class Item:
     score: float = -1.0
     dist: float = -1.0
     roi: list[int] = None
+    color: str = None
+    ocr_result: OcrResult = None
 
 class ItemFinder:
     def __init__(self):
-        self._item_cropper = ItemCropper()
+        self._item_cropper = ItemCropper(TemplateFinder)
         # color range for each type of item
         # hsv ranges in opencv h: [0-180], s: [0-255], v: [0, 255]
         self._template_color_ranges = {
@@ -75,7 +78,6 @@ class ItemFinder:
         item_list = []
         for cluster in item_text_clusters:
             x, y, w, h = cluster.roi
-            # cv2.rectangle(inp_img, (x, y), (x+w, y+h), (0, 255, 0), 1)
             cropped_input  = cluster.data
             best_score = None
             item = None
@@ -117,10 +119,10 @@ class ItemFinder:
                                         item.roi = [max_loc[0] + x, max_loc[1] + y, template.data.shape[1], template.data.shape[0]]
                                         center_abs = (item.center[0] - (inp_img.shape[1] // 2), item.center[1] - (inp_img.shape[0] // 2))
                                         item.dist = math.dist(center_abs, (0, 0))
+                                        item.ocr_result = cluster.ocr_result
+                                        item.color = cluster.color
             if item is not None and self._items_to_pick[item.name].pickit_type:
                 item_list.append(item)
-        elapsed = time.time() - start
-        # print(f"Item Search: {elapsed}")
         return item_list
 
 
@@ -128,8 +130,10 @@ class ItemFinder:
 if __name__ == "__main__":
     from screen import Screen
     from config import Config
+    from template_finder import TemplateFinder
     config = Config()
     screen = Screen(config.general["monitor"])
+    template_finder = TemplateFinder(screen)
     item_finder = ItemFinder()
     while 1:
         # img = cv2.imread("")
@@ -139,7 +143,7 @@ if __name__ == "__main__":
             # print(item.name + " " + str(item.score))
             cv2.circle(img, item.center, 5, (255, 0, 255), thickness=3)
             cv2.rectangle(img, item.roi[:2], (item.roi[0] + item.roi[2], item.roi[1] + item.roi[3]), (0, 0, 255), 1)
-            # cv2.putText(img, item.name, item.center, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(img, item.ocr_result["text"], item.center, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
         # img = cv2.resize(img, None, fx=0.5, fy=0.5)
         cv2.imshow('test', img)
         cv2.waitKey(1)

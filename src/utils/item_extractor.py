@@ -5,9 +5,11 @@ import argparse
 import os
 import cv2
 import numpy as np
+from template_finder import TemplateFinder
 from utils.misc import color_filter
 from item.item_cropper import ItemCropper
 import time
+from screen import Screen
 
 
 if __name__ == "__main__":
@@ -19,7 +21,7 @@ if __name__ == "__main__":
     gen_truth = 1
 
 
-    item_cropper = ItemCropper()
+    item_cropper = ItemCropper(TemplateFinder)
 
     for filename in os.listdir(args.file_path):
         if filename.endswith(".png"):
@@ -27,11 +29,11 @@ if __name__ == "__main__":
             inp_img = cv2.imread(f"{args.file_path}\\{filename}")
             filename = filename[:-4]
             img = inp_img[:,:,:]
-            img_clean = item_cropper.clean_img(img)
+            img_clean = item_cropper.clean_img(img)[0]
             item_clusters = item_cropper.crop(img)
             for count, cluster in enumerate(item_clusters):
                 x, y, w, h = cluster.roi
-                key = cluster.color_key
+                key = cluster.color
                 if gen_truth:
                     cv2.namedWindow("item")
                     cv2.moveWindow("item", 100, 100)

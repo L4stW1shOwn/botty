@@ -59,7 +59,7 @@ class Logger:
         Logger.logger.error(data)
     
     @staticmethod
-    def init(lvl = logging.DEBUG, colored_console = False):
+    def init(lvl = logging.DEBUG, colored_console = True):
         """
         Setup logger for StringIO, console and file handler
         """
@@ -96,7 +96,7 @@ class Logger:
 
         # Optionally add a formatter
         Logger.string_handler.setFormatter(Logger._formatter)
-        Logger.console_handler.setFormatter(Logger._formatter)
+        Logger.console_handler.setFormatter(cf.colored_formatter(Logger._format))
         Logger.file_handler.setFormatter(Logger._formatter)
 
         # Add the handler to the logger

@@ -12,6 +12,7 @@ from game_controller import GameController
 from utils.graphic_debugger import GraphicDebuggerController
 from utils.misc import restore_d2r_window_visibility
 from utils.auto_settings import adjust_settings, backup_settings, restore_settings_from_backup
+import utils.colored_formatter as cf
 
 @dataclass
 class Controllers():

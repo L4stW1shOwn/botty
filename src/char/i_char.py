@@ -15,7 +15,7 @@ from config import Config
 from screen import Screen
 from template_finder import TemplateFinder
 from ui import UiManager
-
+from ocr import Ocr
 
 class IChar:
     _CrossGameCapabilities: Union[None, CharacterCapabilities] = None
@@ -28,6 +28,7 @@ class IChar:
         self._screen = screen
         self._config = Config()
         self._last_tp = time.time()
+        self._ocr = Ocr()
         # Add a bit to be on the save side
         self._cast_duration = self._char_config["casting_frames"] * 0.04 + 0.01
         self.capabilities = None
@@ -35,10 +36,7 @@ class IChar:
     def _discover_capabilities(self) -> CharacterCapabilities:
         if self._skill_hotkeys["teleport"]:
             if self.select_tp():
-                img = self._screen.grab()
-                skill_img = cut_roi(img, self._config.ui_roi["skill_right"])
-                charge_mask, _ = color_filter(skill_img, self._config.colors["blue"])
-                if np.sum(charge_mask) > 0:
+                if self.skill_is_charged():
                     return CharacterCapabilities(can_teleport_natively=False, can_teleport_with_charges=True)
                 else:
                     return CharacterCapabilities(can_teleport_natively=True, can_teleport_with_charges=False)
@@ -99,10 +97,26 @@ class IChar:
         Logger.error(f"Wanted to select {template_type}, but could not find it")
         return False
 
-
+    def skill_is_charged(self, img: np.ndarray = None) -> bool:
+        if img is None:
+            img = self._screen.grab()
+        skill_img = cut_roi(img, self._config.ui_roi["skill_right"])
+        charge_mask, _ = color_filter(skill_img, self._config.colors["blue"])
+        if np.sum(charge_mask) > 0:
+            return True
+        return False
 
     def is_low_on_teleport_charges(self):
-        return self._template_finder.search(["TELE_3_CHARGES", "TELE_3_CHARGES_INACTIVE", "TELE_2_CHARGES", "TELE_2_CHARGES_INACTIVE", "TELE_1_CHARGES", "TELE_1_CHARGES_INACTIVE"], self._screen.grab(), threshold=0.95, roi=self._config.ui_roi["skill_right"]).valid
+        img = self._screen.grab()
+        charges_remaining = self.get_skill_charges()
+        if charges_remaining:
+            Logger.debug(f"{charges_remaining} teleport charges remain")
+            return charges_remaining <= 3
+        else:
+            charges_present = self.skill_is_charged(img)
+            if charges_present:
+                Logger.error("is_low_on_teleport_charges: unable to determine skill charges, assume zero")
+            return True
 
     def _remap_skill_hotkey(self, skill_asset, hotkey, skill_roi, expanded_skill_roi):
         x, y, w, h = skill_roi
@@ -112,7 +126,7 @@ class IChar:
         wait(0.3)
         match = self._template_finder.search(skill_asset, self._screen.grab(), threshold=0.84, roi=expanded_skill_roi)
         if match.valid:
-            x, y = self._screen.convert_screen_to_monitor(match.position)
+            x, y = self._screen.convert_screen_to_monitor(match.center)
             mouse.move(x, y)
             wait(0.3)
             keyboard.send(hotkey)
@@ -128,6 +142,36 @@ class IChar:
             keyboard.send(self._skill_hotkeys["teleport"])
             wait(0.1, 0.2)
        return self._ui_manager.is_right_skill_selected(["TELE_ACTIVE", "TELE_INACTIVE"])
+
+    def get_skill_charges(self, img: np.ndarray = None):
+        if img is None:
+            img = self._screen.grab()
+        x, y, w, h = self._config.ui_roi["skill_right"]
+        x = x - 1
+        y = y + round(h/2)
+        h = round(h/2 + 5)
+        img = cut_roi(img, [x, y, w, h])
+        mask, _ = color_filter(img, self._config.colors["skill_charges"])
+        ocr_result = self._ocr.image_to_text(
+            images = mask,
+            model = "engd2r_inv_th",
+            psm = 7,
+            word_list = "",
+            scale = 1.4,
+            crop_pad = False,
+            erode = False,
+            invert = True,
+            threshold = 0,
+            digits_only = True,
+            fix_regexps = False,
+            check_known_errors = False,
+            check_wordlist = False,
+            word_match_threshold = 0.9
+        )[0]
+        try:
+            return int(ocr_result.text)
+        except:
+            return None
 
     def pre_move(self):
         # if teleport hotkey is set and if teleport is not already selected
@@ -271,14 +315,40 @@ class IChar:
     def kill_diablo(self) -> bool:
         raise ValueError("Diablo is not implemented!")
 
-    def kill_deseis(self, nodes1: list[int], nodes2: list[int], nodes3: list[int]) -> bool:
+    def kill_deseis(self, seal_layout:str) -> bool:
         raise ValueError("Diablo De Seis is not implemented!")
 
-    def kill_infector(self) -> bool:
+    def kill_infector(self, seal_layout:str) -> bool:
         raise ValueError("Diablo Infector is not implemented!")
 
-    def kill_vizier(self, nodes1: list[int], nodes2: list[int]) -> bool:
+    def kill_vizier(self, seal_layout:str) -> bool:
         raise ValueError("Diablo Vizier is not implemented!")
 
-    def kill_cs_trash(self) -> bool:
+    def kill_cs_trash(self, location:str) -> bool:
         raise ValueError("Diablo CS Trash is not implemented!")
+
+if __name__ == "__main__":
+    import os
+    import keyboard
+    keyboard.add_hotkey('f12', lambda: os._exit(1))
+    print(f"Get on D2R screen and press F11 when ready")
+    keyboard.wait("f11")
+    from utils.misc import cut_roi
+    from config import Config
+    from template_finder import TemplateFinder
+    from ui import UiManager
+    from ocr import Ocr
+
+    skill_hotkeys = {}
+    char_config = Config().char
+    screen = Screen()
+    template_finder = TemplateFinder(screen)
+    ui_manager = UiManager(screen, template_finder)
+    config = Config()
+    ocr = Ocr()
+
+    i_char = IChar({}, screen, template_finder, ui_manager)
+
+    while True:
+        print(i_char.get_skill_charges(screen.grab()))
+        wait(1)
